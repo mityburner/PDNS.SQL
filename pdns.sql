@@ -29,13 +29,30 @@ CREATE TABLE `records` (
     ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
+DROP TRIGGER after_insert_domains;
 DELIMITER $$
 CREATE TRIGGER after_insert_domains
 AFTER INSERT ON domains
 FOR EACH ROW
 BEGIN
-    insert into records values(0,new.id,new.name,'SOA','ns.zhuoyue.com root@zhuoyue.com 0 28800 7200 604800 3600',3600,0,UNIX_TIMESTAMP());
     insert into records values(0,new.id,new.name,'NS','ns.zhuoyue.com',3600,0,UNIX_TIMESTAMP());
     insert into records values(0,new.id,new.name,'NS','ns2.zhuoyue.com',3600,0,UNIX_TIMESTAMP());
+    insert into records values(0,new.id,new.name,'SOA','ns.zhuoyue.com root@zhuoyue.com 0 28800 7200 604800 3600',3600,0,UNIX_TIMESTAMP());
+END $$
+DELIMITER ;
+
+DROP TRIGGER before_insert_records;
+DELIMITER $$
+CREATE TRIGGER before_insert_records
+BEFORE INSERT ON records
+FOR EACH ROW
+BEGIN
+    DECLARE old_domain_id int(11);
+    IF new.type='SOA' OR new.type='NS' THEN
+        select domain_id into old_domain_id from records where domain_id=new.domain_id and type='SOA';
+        IF old_domain_id=new.domain_id THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'deny insert SOA|NS record';
+        END IF;
+    END IF;
 END $$
 DELIMITER ;
