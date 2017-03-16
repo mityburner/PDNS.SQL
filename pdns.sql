@@ -50,8 +50,37 @@ BEGIN
     DECLARE old_domain_id int(11);
     IF new.type='SOA' OR new.type='NS' THEN
         select domain_id into old_domain_id from records where domain_id=new.domain_id and type='SOA';
-        IF old_domain_id=new.domain_id THEN
+        IF old_domain_id THEN
             SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'deny insert SOA|NS record';
+        END IF;
+    END IF;
+END $$
+DELIMITER ;
+
+DROP TRIGGER before_update_records;
+DELIMITER $$
+CREATE TRIGGER before_update_records
+BEFORE UPDATE ON records
+FOR EACH ROW
+BEGIN
+    IF old.type='SOA' AND (old.domain_id!=new.domain_id OR old.name!=new.name OR old.type!=new.type)
+    OR old.type='NS'  AND (old.domain_id!=new.domain_id OR old.name!=new.name OR old.type!=new.type OR old.content!=new.content) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'deny update SOA|NS record';
+    END IF;
+END $$
+DELIMITER ;
+
+DROP TRIGGER before_delete_records;
+DELIMITER $$
+CREATE TRIGGER before_delete_records
+BEFORE DELETE ON records
+FOR EACH ROW
+BEGIN
+    DECLARE old_id int(11);
+    IF old.type='SOA' OR old.type='NS' THEN
+        select id into old_id from domains where name=old.name;
+        IF old_id THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'deny delete SOA|NS record';
         END IF;
     END IF;
 END $$
