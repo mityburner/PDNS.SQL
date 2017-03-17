@@ -29,7 +29,36 @@ CREATE TABLE `records` (
     ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
-DROP TRIGGER after_insert_domains;
+DROP FUNCTION IF EXISTS soasn;
+DELIMITER $$
+CREATE FUNCTION soasn(x CHAR(255))
+RETURNS CHAR(255) DETERMINISTIC
+BEGIN
+    DECLARE len INT;
+    DECLARE str CHAR(255);
+    DECLARE llen INT;
+    DECLARE lstr CHAR(255);
+    DECLARE rlen INT;
+    DECLARE rstr CHAR(255);
+    DECLARE sn0 INT;
+    DECLARE sn1 INT;
+    SET len = LENGTH(x);
+    SET llen = LENGTH(SUBSTRING_INDEX(x,' ',2));
+    SET lstr = LEFT(x, llen);
+    SET rlen = len-1-LENGTH(SUBSTRING_INDEX(x,' ',3));
+    SET rstr = RIGHT(x, rlen);
+    SET str = SUBSTRING(x,llen+2,len-2-llen-rlen);
+    SET sn0 = CONVERT(str, UNSIGNED)+1;
+    SET sn1 = CURDATE()*100;
+    IF sn1 < sn0 THEN
+        SET sn1 = sn0;
+    END IF;
+    RETURN CONCAT(lstr,' ',sn1,' ',rstr);
+END$$
+DELIMITER ;
+
+DROP TRIGGER IF EXISTS after_insert_domains;
+
 DELIMITER $$
 CREATE TRIGGER after_insert_domains
 AFTER INSERT ON domains
@@ -41,7 +70,8 @@ BEGIN
 END $$
 DELIMITER ;
 
-DROP TRIGGER before_insert_records;
+DROP TRIGGER IF EXISTS before_insert_records;
+
 DELIMITER $$
 CREATE TRIGGER before_insert_records
 BEFORE INSERT ON records
@@ -57,20 +87,26 @@ BEGIN
 END $$
 DELIMITER ;
 
-DROP TRIGGER before_update_records;
+DROP TRIGGER IF EXISTS before_update_records;
 DELIMITER $$
 CREATE TRIGGER before_update_records
 BEFORE UPDATE ON records
 FOR EACH ROW
 BEGIN
-    IF old.type='SOA' AND (old.domain_id!=new.domain_id OR old.name!=new.name OR old.type!=new.type)
-    OR old.type='NS'  AND (old.domain_id!=new.domain_id OR old.name!=new.name OR old.type!=new.type OR old.content!=new.content) THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'deny update SOA|NS record';
+
+    IF old.type='SOA' OR old.type='NS' THEN
+        IF old.domain_id!=new.domain_id OR old.name!=new.name OR old.type!=new.type OR
+           old.type='NS' AND old.content!=new.content THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'deny update SOA|NS record';
+        END IF;
+
     END IF;
 END $$
 DELIMITER ;
 
-DROP TRIGGER before_delete_records;
+
+DROP TRIGGER IF EXISTS before_delete_records;
+
 DELIMITER $$
 CREATE TRIGGER before_delete_records
 BEFORE DELETE ON records
