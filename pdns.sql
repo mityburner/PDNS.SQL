@@ -58,6 +58,7 @@ END$$
 DELIMITER ;
 
 DROP TRIGGER IF EXISTS after_insert_domains;
+
 DELIMITER $$
 CREATE TRIGGER after_insert_domains
 AFTER INSERT ON domains
@@ -70,6 +71,7 @@ END $$
 DELIMITER ;
 
 DROP TRIGGER IF EXISTS before_insert_records;
+
 DELIMITER $$
 CREATE TRIGGER before_insert_records
 BEFORE INSERT ON records
@@ -91,16 +93,20 @@ CREATE TRIGGER before_update_records
 BEFORE UPDATE ON records
 FOR EACH ROW
 BEGIN
+
     IF old.type='SOA' OR old.type='NS' THEN
         IF old.domain_id!=new.domain_id OR old.name!=new.name OR old.type!=new.type OR
            old.type='NS' AND old.content!=new.content THEN
             SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'deny update SOA|NS record';
         END IF;
+
     END IF;
 END $$
 DELIMITER ;
 
+
 DROP TRIGGER IF EXISTS before_delete_records;
+
 DELIMITER $$
 CREATE TRIGGER before_delete_records
 BEFORE DELETE ON records
