@@ -63,9 +63,9 @@ CREATE TRIGGER after_insert_domains
 AFTER INSERT ON domains
 FOR EACH ROW
 BEGIN
-    insert into records values(0,new.id,new.name,'NS','ns.zhuoyue.com',3600,0,UNIX_TIMESTAMP());
-    insert into records values(0,new.id,new.name,'NS','ns2.zhuoyue.com',3600,0,UNIX_TIMESTAMP());
-    insert into records values(0,new.id,new.name,'SOA','ns.zhuoyue.com root@zhuoyue.com 0 28800 7200 604800 3600',3600,0,UNIX_TIMESTAMP());
+    insert into records values(0,new.id,new.name,'NS','ns.zhuoyue.wang',3600,0,UNIX_TIMESTAMP());
+    insert into records values(0,new.id,new.name,'NS','ns2.zhuoyue.wang',3600,0,UNIX_TIMESTAMP());
+    insert into records values(0,new.id,new.name,'SOA','ns.zhuoyue.wang root@zhuoyue.wang 0 28800 7200 604800 3600',3600,0,UNIX_TIMESTAMP());
 END $$
 DELIMITER ;
 
